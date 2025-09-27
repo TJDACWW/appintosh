@@ -39,10 +39,56 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final _reminder = WaterReminder();
+  late final TextEditingController _targetController;
+  final _hoursController = TextEditingController(text: '2');
+  final _minutesController = TextEditingController(text: '0');
+  final _secondsController = TextEditingController(text: '0');
+
+  @override
+  void initState() {
+    super.initState();
+    _targetController = TextEditingController(text: _reminder.dailyTarget.toString());
+  }
+
+  @override
+  void dispose() {
+    _hoursController.dispose();
+    _minutesController.dispose();
+    _secondsController.dispose();
+    _targetController.dispose();
+    super.dispose();
+  }
 
   void _drinkWater() {
     setState(() {
       _reminder.drink();
+    });
+  }
+
+  bool _isValidTarget(String? value) {
+    if (value == null || value.isEmpty) return true;
+    final target = int.tryParse(value);
+    return target != null && target > 0;
+  }
+
+  void _updateDailyTarget(String value) {
+    if (_isValidTarget(value)) {
+      final target = int.tryParse(value);
+      if (target != null && target > 0) {
+        setState(() {
+          _reminder.dailyTarget = target;
+        });
+      }
+    }
+  }
+
+  void _updateInterval({int hours = 0, int minutes = 0, int seconds = 0}) {
+    setState(() {
+      _reminder.setReminderInterval(
+        hours: hours,
+        minutes: minutes,
+        seconds: seconds,
+      );
     });
   }
 
@@ -57,9 +103,91 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('Number of water glasses today:'),
+            ListTile(
+              title: Text('Daily Target (glasses)'),
+              trailing: SizedBox(
+                width: 100,
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    errorText: _isValidTarget(_targetController.text) ? null : '',
+                  ),
+                  controller: _targetController,
+                  onChanged: _updateDailyTarget,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Reminder Interval:'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Hours',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
+                    controller: _hoursController,
+                    onChanged: (value) {
+                      _updateInterval(
+                        hours: int.tryParse(value) ?? 0,
+                        minutes: int.tryParse(_minutesController.text) ?? 0,
+                        seconds: int.tryParse(_secondsController.text) ?? 0,
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(width: 8),
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Min',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
+                    controller: _minutesController,
+                    onChanged: (value) {
+                      _updateInterval(
+                        hours: int.tryParse(_hoursController.text) ?? 0,
+                        minutes: int.tryParse(value) ?? 0,
+                        seconds: int.tryParse(_secondsController.text) ?? 0,
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(width: 8),
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Sec',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
+                    controller: _secondsController,
+                    onChanged: (value) {
+                      _updateInterval(
+                        hours: int.tryParse(_hoursController.text) ?? 0,
+                        minutes: int.tryParse(_minutesController.text) ?? 0,
+                        seconds: int.tryParse(value) ?? 0,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
             Text(
-              '${_reminder.glassCount}',
+              'Progress: ${_reminder.glassCount} / ${_reminder.dailyTarget} glasses',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 16),
